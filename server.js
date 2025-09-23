@@ -55,51 +55,73 @@ function initializeDatabase() {
         password TEXT NOT NULL,
         role TEXT NOT NULL,
         school_id TEXT NOT NULL,
+        profile_picture TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    // Schools table
-    db.run(`CREATE TABLE IF NOT EXISTS schools (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        address TEXT,
-        contact_person TEXT,
-        phone TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    // Students table
-    db.run(`CREATE TABLE IF NOT EXISTS students (
-        id TEXT PRIMARY KEY,
-        roll_number TEXT UNIQUE NOT NULL,
-        name TEXT NOT NULL,
-        class TEXT NOT NULL,
-        section TEXT,
-        school_id TEXT NOT NULL,
-        rfid_tag TEXT,
-        photo_path TEXT,
-        parent_contact TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (school_id) REFERENCES schools (id)
-    )`);
-
-    // Attendance table
-    db.run(`CREATE TABLE IF NOT EXISTS attendance (
-        id TEXT PRIMARY KEY,
-        student_id TEXT NOT NULL,
-        date DATE NOT NULL,
-        time_in TIME,
-        time_out TIME,
-        status TEXT NOT NULL,
-        method TEXT NOT NULL,
-        marked_by TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (student_id) REFERENCES students (id),
-        FOREIGN KEY (marked_by) REFERENCES users (id)
-    )`);
-
-    // Insert default data
-    insertDefaultData();
+    )`, (err) => {
+        if (err) {
+            console.error('Error creating users table:', err);
+            return;
+        }
+        
+        // Schools table
+        db.run(`CREATE TABLE IF NOT EXISTS schools (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            address TEXT,
+            contact_person TEXT,
+            phone TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`, (err) => {
+            if (err) {
+                console.error('Error creating schools table:', err);
+                return;
+            }
+            
+            // Students table
+            db.run(`CREATE TABLE IF NOT EXISTS students (
+                id TEXT PRIMARY KEY,
+                roll_number TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                class TEXT NOT NULL,
+                section TEXT,
+                school_id TEXT NOT NULL,
+                rfid_tag TEXT,
+                photo_path TEXT,
+                parent_contact TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (school_id) REFERENCES schools (id)
+            )`, (err) => {
+                if (err) {
+                    console.error('Error creating students table:', err);
+                    return;
+                }
+                
+                // Attendance table
+                db.run(`CREATE TABLE IF NOT EXISTS attendance (
+                    id TEXT PRIMARY KEY,
+                    student_id TEXT NOT NULL,
+                    date DATE NOT NULL,
+                    time_in TIME,
+                    time_out TIME,
+                    status TEXT NOT NULL,
+                    method TEXT NOT NULL,
+                    marked_by TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (student_id) REFERENCES students (id),
+                    FOREIGN KEY (marked_by) REFERENCES users (id)
+                )`, (err) => {
+                    if (err) {
+                        console.error('Error creating attendance table:', err);
+                        return;
+                    }
+                    
+                    console.log('All database tables created successfully');
+                    // Insert default data only after all tables are created
+                    insertDefaultData();
+                });
+            });
+        });
+    });
 }
 
 function insertDefaultData() {
@@ -126,15 +148,26 @@ function insertDefaultData() {
                         return;
                     }
                     
-                    // Create default admin user
+                    // Create default admin user - vaibhav
                     const adminId = uuidv4();
-                    const hashedPassword = bcrypt.hashSync('admin123', 10);
+                    const hashedPassword = bcrypt.hashSync('vaibhav123', 10);
                     db.run(`INSERT INTO users (id, username, password, role, school_id) 
                             VALUES (?, ?, ?, ?, ?)`, 
-                            [adminId, 'admin', hashedPassword, 'admin', schoolId], 
+                            [adminId, 'vaibhav', hashedPassword, 'admin', schoolId], 
                             function(err) {
                                 if (err) console.error('Error inserting admin:', err);
-                                else console.log('Admin user created successfully');
+                                else console.log('Admin user vaibhav created successfully');
+                            });
+
+                    // Create second admin user - harsh
+                    const harshId = uuidv4();
+                    const harshPassword = bcrypt.hashSync('harsh-in-making', 10);
+                    db.run(`INSERT INTO users (id, username, password, role, school_id) 
+                            VALUES (?, ?, ?, ?, ?)`, 
+                            [harshId, 'harsh', harshPassword, 'admin', schoolId], 
+                            function(err) {
+                                if (err) console.error('Error inserting harsh admin:', err);
+                                else console.log('Admin user harsh created successfully');
                             });
 
                     // Create default teacher user
@@ -150,18 +183,55 @@ function insertDefaultData() {
 
                     // Insert sample students
                     const students = [
-                        { name: 'Arjun Patel', class: '5', section: 'A', rollNumber: '5A001' },
-                        { name: 'Priya Sharma', class: '5', section: 'A', rollNumber: '5A002' },
-                        { name: 'Rahul Kumar', class: '4', section: 'B', rollNumber: '4B001' },
-                        { name: 'Sneha Gupta', class: '4', section: 'B', rollNumber: '4B002' },
-                        { name: 'Vikram Singh', class: '3', section: 'A', rollNumber: '3A001' }
+                        // Class 5 - Section A
+                        { name: 'Arjun Patel', class: '5', section: 'A', rollNumber: '5A001', rfidTag: 'RFID001' },
+                        { name: 'Priya Sharma', class: '5', section: 'A', rollNumber: '5A002', rfidTag: 'RFID002' },
+                        { name: 'Ravi Kumar', class: '5', section: 'A', rollNumber: '5A003', rfidTag: 'RFID003' },
+                        { name: 'Anita Singh', class: '5', section: 'A', rollNumber: '5A004', rfidTag: 'RFID004' },
+                        { name: 'Deepak Gupta', class: '5', section: 'A', rollNumber: '5A005', rfidTag: 'RFID005' },
+                        { name: 'Kavya Reddy', class: '5', section: 'A', rollNumber: '5A006', rfidTag: 'RFID006' },
+                        
+                        // Class 5 - Section B
+                        { name: 'Rohit Verma', class: '5', section: 'B', rollNumber: '5B001', rfidTag: 'RFID007' },
+                        { name: 'Meera Joshi', class: '5', section: 'B', rollNumber: '5B002', rfidTag: 'RFID008' },
+                        { name: 'Amit Yadav', class: '5', section: 'B', rollNumber: '5B003', rfidTag: 'RFID009' },
+                        { name: 'Pooja Agarwal', class: '5', section: 'B', rollNumber: '5B004', rfidTag: 'RFID010' },
+                        { name: 'Suresh Nair', class: '5', section: 'B', rollNumber: '5B005', rfidTag: 'RFID011' },
+                        
+                        // Class 4 - Section A
+                        { name: 'Rahul Kumar', class: '4', section: 'A', rollNumber: '4A001', rfidTag: 'RFID012' },
+                        { name: 'Sneha Gupta', class: '4', section: 'A', rollNumber: '4A002', rfidTag: 'RFID013' },
+                        { name: 'Kiran Desai', class: '4', section: 'A', rollNumber: '4A003', rfidTag: 'RFID014' },
+                        { name: 'Neha Pandey', class: '4', section: 'A', rollNumber: '4A004', rfidTag: 'RFID015' },
+                        { name: 'Vishal Tiwari', class: '4', section: 'A', rollNumber: '4A005', rfidTag: 'RFID016' },
+                        { name: 'Divya Mishra', class: '4', section: 'A', rollNumber: '4A006', rfidTag: 'RFID017' },
+                        
+                        // Class 4 - Section B
+                        { name: 'Sanjay Rao', class: '4', section: 'B', rollNumber: '4B001', rfidTag: 'RFID018' },
+                        { name: 'Rekha Sinha', class: '4', section: 'B', rollNumber: '4B002', rfidTag: 'RFID019' },
+                        { name: 'Manoj Bhatt', class: '4', section: 'B', rollNumber: '4B003', rfidTag: 'RFID020' },
+                        { name: 'Sunita Jain', class: '4', section: 'B', rollNumber: '4B004', rfidTag: 'RFID021' },
+                        { name: 'Ajay Saxena', class: '4', section: 'B', rollNumber: '4B005', rfidTag: 'RFID022' },
+                        
+                        // Class 3 - Section A
+                        { name: 'Vikram Singh', class: '3', section: 'A', rollNumber: '3A001', rfidTag: 'RFID023' },
+                        { name: 'Lakshmi Iyer', class: '3', section: 'A', rollNumber: '3A002', rfidTag: 'RFID024' },
+                        { name: 'Harish Chandra', class: '3', section: 'A', rollNumber: '3A003', rfidTag: 'RFID025' },
+                        { name: 'Radha Krishna', class: '3', section: 'A', rollNumber: '3A004', rfidTag: 'RFID026' },
+                        { name: 'Gopal Sharma', class: '3', section: 'A', rollNumber: '3A005', rfidTag: 'RFID027' },
+                        { name: 'Sita Devi', class: '3', section: 'A', rollNumber: '3A006', rfidTag: 'RFID028' },
+                        
+                        // Class 3 - Section B
+                        { name: 'Ramesh Gupta', class: '3', section: 'B', rollNumber: '3B001', rfidTag: 'RFID029' },
+                        { name: 'Gita Patel', class: '3', section: 'B', rollNumber: '3B002', rfidTag: 'RFID030' },
+                        { name: 'Mukesh Kumar', class: '3', section: 'B', rollNumber: '3B003', rfidTag: 'RFID031' }
                     ];
 
                     students.forEach(student => {
                         const studentId = uuidv4();
-                        db.run(`INSERT INTO students (id, roll_number, name, class, section, school_id, parent_contact) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?)`, 
-                                [studentId, student.rollNumber, student.name, student.class, student.section, schoolId, '+91-9876543210'],
+                        db.run(`INSERT INTO students (id, roll_number, name, class, section, school_id, rfid_tag, parent_contact) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
+                                [studentId, student.rollNumber, student.name, student.class, student.section, schoolId, student.rfidTag, '+91-9876543210'],
                                 function(err) {
                                     if (err) console.error('Error inserting student:', err);
                                 });
@@ -231,6 +301,44 @@ app.get('/api/students', authenticateToken, (req, res) => {
             return res.status(500).json({ error: 'Database error' });
         }
         res.json(students);
+    });
+});
+
+// Upload profile picture
+app.post('/api/profile-picture', authenticateToken, upload.single('profilePicture'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const profilePicturePath = req.file.path;
+    
+    db.run('UPDATE users SET profile_picture = ? WHERE id = ?', 
+           [profilePicturePath, req.user.id], 
+           function(err) {
+               if (err) {
+                   return res.status(500).json({ error: 'Failed to update profile picture' });
+               }
+               
+               res.json({ 
+                   message: 'Profile picture updated successfully',
+                   profilePicture: profilePicturePath
+               });
+           });
+});
+
+// Get user profile
+app.get('/api/profile', authenticateToken, (req, res) => {
+    db.get('SELECT id, username, role, profile_picture FROM users WHERE id = ?', 
+           [req.user.id], (err, user) => {
+        if (err) {
+            return res.status(500).json({ error: 'Database error' });
+        }
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        res.json(user);
     });
 });
 
@@ -394,9 +502,13 @@ app.post('/api/facial-recognition', authenticateToken, upload.single('image'), (
     }, 2000); // 2 second delay to simulate processing
 });
 
-// Mock RFID scan endpoint
+// RFID attendance marking endpoint
 app.post('/api/rfid-scan', authenticateToken, (req, res) => {
     const { rfid_tag } = req.body;
+    
+    if (!rfid_tag) {
+        return res.status(400).json({ error: 'RFID tag is required' });
+    }
     
     db.get('SELECT * FROM students WHERE rfid_tag = ? AND school_id = ?', 
            [rfid_tag, req.user.school_id], (err, student) => {
@@ -404,18 +516,102 @@ app.post('/api/rfid-scan', authenticateToken, (req, res) => {
             return res.status(500).json({ error: 'Database error' });
         }
         
-        if (student) {
-            res.json({
-                success: true,
-                student: student,
-                message: 'Student identified successfully'
-            });
-        } else {
-            res.json({
+        if (!student) {
+            return res.json({
                 success: false,
                 message: 'RFID tag not found'
             });
         }
+
+        // Check if attendance already marked today
+        const today = moment().format('YYYY-MM-DD');
+        db.get('SELECT * FROM attendance WHERE student_id = ? AND date = ?', 
+               [student.id, today], (err, existingAttendance) => {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+
+            if (existingAttendance) {
+                return res.json({
+                    success: false,
+                    message: `Attendance already marked for ${student.name} today`,
+                    student: student
+                });
+            }
+
+            // Mark attendance
+            const attendanceId = uuidv4();
+            const currentTime = moment().format('HH:mm:ss');
+            
+            db.run(`INSERT INTO attendance (id, student_id, date, time_in, status, method, marked_by) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [attendanceId, student.id, today, currentTime, 'present', 'rfid', req.user.id],
+                    function(err) {
+                        if (err) {
+                            return res.status(500).json({ error: 'Failed to mark attendance' });
+                        }
+
+                        res.json({
+                            success: true,
+                            message: `Attendance marked successfully for ${student.name}`,
+                            student: student,
+                            attendance: {
+                                id: attendanceId,
+                                date: today,
+                                time_in: currentTime,
+                                status: 'present',
+                                method: 'rfid'
+                            }
+                        });
+                    });
+        });
+    });
+});
+
+// System health check endpoint
+app.get('/api/health', authenticateToken, (req, res) => {
+    const healthCheck = {
+        timestamp: moment().format('YYYY-MM-DD HH:mm:ss'),
+        status: 'healthy',
+        user: {
+            id: req.user.id,
+            username: req.user.username,
+            role: req.user.role
+        },
+        database: 'connected',
+        features: {
+            authentication: 'active',
+            studentManagement: 'active',
+            attendanceMarking: 'active',
+            rfidSystem: 'active',
+            facialRecognition: 'demo_mode',
+            reports: 'active',
+            profileManagement: 'active'
+        },
+        statistics: {}
+    };
+
+    // Get quick stats
+    db.get('SELECT COUNT(*) as total FROM students WHERE school_id = ?', 
+           [req.user.school_id], (err, studentCount) => {
+        if (!err && studentCount) {
+            healthCheck.statistics.totalStudents = studentCount.total;
+        }
+
+        db.get('SELECT COUNT(*) as total FROM attendance WHERE date = ?', 
+               [moment().format('YYYY-MM-DD')], (err, attendanceCount) => {
+            if (!err && attendanceCount) {
+                healthCheck.statistics.todayAttendance = attendanceCount.total;
+            }
+
+            db.get('SELECT COUNT(*) as total FROM users', (err, userCount) => {
+                if (!err && userCount) {
+                    healthCheck.statistics.totalUsers = userCount.total;
+                }
+
+                res.json(healthCheck);
+            });
+        });
     });
 });
 
@@ -431,7 +627,8 @@ if (process.env.NODE_ENV === 'production') {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log('Default login credentials:');
-    console.log('Admin - Username: admin, Password: admin123');
+    console.log('Admin - Username: vaibhav, Password: vaibhav123');
+    console.log('Admin - Username: harsh, Password: harsh-in-making');
     console.log('Teacher - Username: teacher, Password: teacher123');
 });
 

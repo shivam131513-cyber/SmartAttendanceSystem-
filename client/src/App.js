@@ -9,6 +9,7 @@ import Dashboard from './components/Dashboard';
 import AttendanceMarking from './components/AttendanceMarking';
 import StudentManagement from './components/StudentManagement';
 import Reports from './components/Reports';
+import SystemStatus from './components/SystemStatus';
 import Navbar from './components/Navbar';
 
 // Set up axios defaults
@@ -86,6 +87,12 @@ function App() {
               path="/reports" 
               element={
                 user ? <Reports user={user} /> : <Navigate to="/login" />
+              } 
+            />
+            <Route 
+              path="/system-status" 
+              element={
+                user ? <SystemStatus user={user} /> : <Navigate to="/login" />
               } 
             />
             <Route 

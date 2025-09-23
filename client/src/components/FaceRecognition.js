@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as faceapi from 'face-api.js';
 import FaceRegistration from './FaceRegistration';
 
-const FaceRecognition = ({ onRecognitionResult, students = [], isActive }) => {
+const FaceRecognition = ({ onRecognitionResult, students = [], isActive, onCameraStatusChange }) => {
   // Mock students if none provided
   const mockStudents = [
     { id: '1', name: 'Arjun Patel', class: '5', section: 'A', roll_number: '5A001' },
@@ -93,10 +93,16 @@ const FaceRecognition = ({ onRecognitionResult, students = [], isActive }) => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         setStatus('Camera ready - Position your face in the frame');
+        if (onCameraStatusChange) {
+          onCameraStatusChange(true);
+        }
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
       setStatus('Failed to access camera. Please check permissions.');
+      if (onCameraStatusChange) {
+        onCameraStatusChange(false);
+      }
     }
   };
 
@@ -105,6 +111,10 @@ const FaceRecognition = ({ onRecognitionResult, students = [], isActive }) => {
       const tracks = videoRef.current.srcObject.getTracks();
       tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
+      setStatus('Camera stopped');
+      if (onCameraStatusChange) {
+        onCameraStatusChange(false);
+      }
     }
   };
 
@@ -379,49 +389,67 @@ const FaceRecognition = ({ onRecognitionResult, students = [], isActive }) => {
           <div style={{ fontSize: '0.8rem' }}>
             👤 Registered: {Object.keys(faceDescriptors).length} | 
             👥 Students: {availableStudents.length} |
-            Modal: {showRegistration ? 'Open' : 'Closed'}
+            📹 Camera: {isActive ? 'Active' : 'Inactive'}
           </div>
         </div>
       </div>
       
-      <div style={{ position: 'relative', display: 'inline-block' }}>
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          onPlay={handleVideoPlay}
-          style={{ 
-            width: '100%', 
-            maxWidth: '640px', 
-            borderRadius: '8px',
-            border: '2px solid #4caf50'
-          }}
-        />
-        <canvas
-          ref={canvasRef}
-          style={{ 
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            pointerEvents: 'none'
-          }}
-        />
-      </div>
+      {!isActive && (
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '8px',
+          border: '2px dashed #6c757d',
+          marginBottom: '20px',
+          color: '#6c757d'
+        }}>
+          <h3 style={{ margin: '0 0 10px 0' }}>📹 Camera Not Active</h3>
+          <p style={{ margin: 0 }}>
+            Click the "Start Camera" button above to begin facial recognition.
+          </p>
+        </div>
+      )}
       
-      <div style={{ marginTop: '20px' }}>
-        <button
-          onClick={detectFaces}
-          disabled={isDetecting || !isActive}
-          className="btn btn-success"
-          style={{ 
-            padding: '12px 24px', 
-            fontSize: '1rem',
-            marginRight: '10px'
-          }}
-        >
-          {isDetecting ? '🔄 Detecting...' : '🎯 Detect & Recognize Face'}
-        </button>
+      {isActive && (
+        <>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              onPlay={handleVideoPlay}
+              style={{ 
+                width: '100%', 
+                maxWidth: '640px', 
+                borderRadius: '8px',
+                border: '2px solid #4caf50'
+              }}
+            />
+            <canvas
+              ref={canvasRef}
+              style={{ 
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                pointerEvents: 'none'
+              }}
+            />
+          </div>
+          
+          <div style={{ marginTop: '20px' }}>
+            <button
+              onClick={detectFaces}
+              disabled={isDetecting || !isActive}
+              className="btn btn-success"
+              style={{ 
+                padding: '12px 24px', 
+                fontSize: '1rem',
+                marginRight: '10px'
+              }}
+            >
+              {isDetecting ? '🔄 Detecting...' : '🎯 Detect & Recognize Face'}
+            </button>
         
         <button
           onClick={() => {
@@ -449,23 +477,25 @@ const FaceRecognition = ({ onRecognitionResult, students = [], isActive }) => {
           🗑️ Clear All Faces
         </button>
 
-        <button
-          onClick={() => {
-            // Test registration modal
-            const testFaceData = {
-              descriptor: Array.from({length: 128}, () => Math.random()),
-              detection: { confidence: 0.9 }
-            };
-            setPendingFaceData(testFaceData);
-            setShowRegistration(true);
-            setStatus('Test registration modal opened');
-          }}
-          className="btn btn-primary"
-          style={{ padding: '12px 24px' }}
-        >
-          🧪 Test Registration
-        </button>
-      </div>
+            <button
+              onClick={() => {
+                // Test registration modal
+                const testFaceData = {
+                  descriptor: Array.from({length: 128}, () => Math.random()),
+                  detection: { confidence: 0.9 }
+                };
+                setPendingFaceData(testFaceData);
+                setShowRegistration(true);
+                setStatus('Test registration modal opened');
+              }}
+              className="btn btn-primary"
+              style={{ padding: '12px 24px' }}
+            >
+              🧪 Test Registration
+            </button>
+          </div>
+        </>
+      )}
       
       <div style={{ 
         marginTop: '15px', 

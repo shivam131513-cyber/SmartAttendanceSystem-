@@ -112,7 +112,10 @@ const Login = ({ onLogin }) => {
         }}>
           <h4 style={{ marginBottom: '10px', color: '#333' }}>Demo Credentials:</h4>
           <p style={{ margin: '5px 0', color: '#666' }}>
-            <strong>Admin:</strong> admin / admin123
+            <strong>Admin:</strong> vaibhav / vaibhav123
+          </p>
+          <p style={{ margin: '5px 0', color: '#666' }}>
+            <strong>Admin:</strong> harsh / harsh-in-making
           </p>
           <p style={{ margin: '5px 0', color: '#666' }}>
             <strong>Teacher:</strong> teacher / teacher123

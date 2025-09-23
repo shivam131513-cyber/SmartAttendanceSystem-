@@ -1,11 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import Profile from './Profile';
+import axios from 'axios';
 
 const Navbar = ({ user, onLogout }) => {
   const location = useLocation();
+  const [showProfile, setShowProfile] = useState(false);
+  const [profilePicture, setProfilePicture] = useState(null);
 
   const isActive = (path) => {
     return location.pathname === path;
+  };
+
+  useEffect(() => {
+    fetchProfilePicture();
+  }, []);
+
+  const fetchProfilePicture = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('/api/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.profile_picture) {
+        setProfilePicture(`http://localhost:5000/${response.data.profile_picture}`);
+      }
+    } catch (error) {
+      console.error('Error fetching profile picture:', error);
+    }
+  };
+
+  const handleProfileUpdate = () => {
+    fetchProfilePicture();
   };
 
   const navStyle = {
@@ -68,6 +94,32 @@ const Navbar = ({ user, onLogout }) => {
     transition: 'background-color 0.2s'
   };
 
+  const profileIconStyle = {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    cursor: 'pointer',
+    border: '2px solid white',
+    objectFit: 'cover',
+    transition: 'transform 0.2s'
+  };
+
+  const defaultProfileIconStyle = {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    border: '2px solid white',
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: '16px',
+    transition: 'transform 0.2s'
+  };
+
   return (
     <nav style={navStyle}>
       <div style={navContainerStyle}>
@@ -110,9 +162,38 @@ const Navbar = ({ user, onLogout }) => {
               Reports
             </Link>
           </li>
+          {user.role === 'admin' && (
+            <li>
+              <Link 
+                to="/system-status" 
+                style={isActive('/system-status') ? activeLinkStyle : linkStyle}
+              >
+                System Status
+              </Link>
+            </li>
+          )}
         </ul>
 
         <div style={userInfoStyle}>
+          {profilePicture ? (
+            <img 
+              src={profilePicture} 
+              alt="Profile" 
+              style={profileIconStyle}
+              onClick={() => setShowProfile(true)}
+              onMouseOver={(e) => e.target.style.transform = 'scale(1.1)'}
+              onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+            />
+          ) : (
+            <div 
+              style={defaultProfileIconStyle}
+              onClick={() => setShowProfile(true)}
+              onMouseOver={(e) => e.target.style.transform = 'scale(1.1)'}
+              onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+            >
+              {user.username.charAt(0).toUpperCase()}
+            </div>
+          )}
           <span>
             Welcome, {user.username} ({user.role})
           </span>
@@ -126,6 +207,14 @@ const Navbar = ({ user, onLogout }) => {
           </button>
         </div>
       </div>
+      
+      {showProfile && (
+        <Profile 
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onProfileUpdate={handleProfileUpdate}
+        />
+      )}
     </nav>
   );
 };

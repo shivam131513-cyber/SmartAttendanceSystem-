@@ -11,6 +11,9 @@ const AttendanceMarking = ({ user }) => {
   const [success, setSuccess] = useState('');
   const [rfidInput, setRfidInput] = useState('');
   const [recognitionResults, setRecognitionResults] = useState([]);
+  const [rfidProcessing, setRfidProcessing] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [markingAllPresent, setMarkingAllPresent] = useState(false);
   
   const rfidInputRef = useRef(null);
 
@@ -162,25 +165,56 @@ const AttendanceMarking = ({ user }) => {
 
   const handleRfidScan = async (e) => {
     if (e.key === 'Enter' && rfidInput.trim()) {
-      try {
-        const response = await axios.post('/api/rfid-scan', {
-          rfid_tag: rfidInput.trim()
-        });
+      await processRfidAttendance();
+    }
+  };
 
-        if (response.data.success) {
-          const student = response.data.student;
-          await markAttendance(student.id, 'present');
-          setRfidInput('');
-          setSuccess(`${student.name} marked present via RFID!`);
-        } else {
-          setError('RFID tag not found. Please check the tag.');
-          setRfidInput('');
+  const processRfidAttendance = async () => {
+    if (!rfidInput.trim()) {
+      setError('❌ Please enter an RFID tag number');
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccess('');
+      setRfidProcessing(true);
+      
+      const response = await axios.post('/api/rfid-scan', {
+        rfid_tag: rfidInput.trim()
+      }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         }
-      } catch (error) {
-        setError('RFID scan failed. Please try again.');
+      });
+
+      if (response.data.success) {
+        const student = response.data.student;
+        const attendance = response.data.attendance;
         setRfidInput('');
-        console.error('RFID scan error:', error);
+        setSuccess(`✅ ${student.name} (${student.roll_number}) marked present via RFID at ${attendance.time_in}!`);
+        
+        // Refresh students list to update attendance status
+        fetchStudents();
+        
+        // Auto-clear success message after 5 seconds
+        setTimeout(() => setSuccess(''), 5000);
+      } else {
+        setError(`❌ ${response.data.message}`);
+        setRfidInput('');
+        
+        // Auto-clear error message after 3 seconds
+        setTimeout(() => setError(''), 3000);
       }
+    } catch (error) {
+      setError('❌ RFID scan failed. Please try again.');
+      setRfidInput('');
+      console.error('RFID scan error:', error);
+      
+      // Auto-clear error message after 3 seconds
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setRfidProcessing(false);
     }
   };
 
@@ -189,6 +223,49 @@ const AttendanceMarking = ({ user }) => {
     setRecognitionResults(results => 
       results.filter(result => result.id !== studentId)
     );
+  };
+
+  const markAllRecognizedPresent = async () => {
+    if (recognitionResults.length === 0) return;
+    
+    setMarkingAllPresent(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const student of recognitionResults) {
+        try {
+          await markAttendance(student.id, 'present');
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          console.error(`Failed to mark attendance for ${student.name}:`, error);
+        }
+      }
+      
+      if (successCount > 0) {
+        setSuccess(`✅ Successfully marked ${successCount} student(s) present via facial recognition!`);
+        setRecognitionResults([]); // Clear all results after marking
+        
+        // Auto-clear success message after 5 seconds
+        setTimeout(() => setSuccess(''), 5000);
+      }
+      
+      if (errorCount > 0) {
+        setError(`❌ Failed to mark ${errorCount} student(s). Please try again.`);
+        setTimeout(() => setError(''), 3000);
+      }
+      
+    } catch (error) {
+      setError('❌ Failed to mark attendance for recognized students.');
+      console.error('Bulk attendance marking error:', error);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setMarkingAllPresent(false);
+    }
   };
 
   if (loading) {
@@ -259,10 +336,76 @@ const AttendanceMarking = ({ user }) => {
               onKeyPress={handleRfidScan}
               placeholder="Scan RFID tag here..."
               autoFocus
+              style={{
+                width: '100%',
+                padding: '15px',
+                fontSize: '18px',
+                border: '2px solid #667eea',
+                borderRadius: '8px',
+                marginBottom: '15px',
+                textAlign: 'center',
+                fontWeight: 'bold'
+              }}
             />
+            
+            <button
+              onClick={processRfidAttendance}
+              disabled={!rfidInput.trim() || rfidProcessing}
+              style={{
+                width: '100%',
+                padding: '15px 30px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                color: 'white',
+                backgroundColor: rfidProcessing ? '#ffc107' : 
+                                (rfidInput.trim() ? '#28a745' : '#6c757d'),
+                border: 'none',
+                borderRadius: '8px',
+                cursor: (rfidInput.trim() && !rfidProcessing) ? 'pointer' : 'not-allowed',
+                marginBottom: '15px',
+                transition: 'all 0.3s ease',
+                opacity: rfidProcessing ? 0.8 : 1
+              }}
+              onMouseOver={(e) => {
+                if (rfidInput.trim() && !rfidProcessing) {
+                  e.target.style.backgroundColor = '#218838';
+                  e.target.style.transform = 'translateY(-2px)';
+                }
+              }}
+              onMouseOut={(e) => {
+                if (rfidInput.trim() && !rfidProcessing) {
+                  e.target.style.backgroundColor = '#28a745';
+                  e.target.style.transform = 'translateY(0)';
+                }
+              }}
+            >
+              {rfidProcessing ? '⏳ Processing RFID...' : '🏷️ Mark Attendance with RFID'}
+            </button>
+            
             <p style={{ fontSize: '0.9rem', opacity: 0.8, marginTop: '10px' }}>
-              Focus will automatically return to this field after each scan
+              💡 Enter RFID tag and click the button above, or press Enter
             </p>
+            
+            <div style={{ 
+              marginTop: '20px', 
+              padding: '15px', 
+              backgroundColor: '#f8f9fa', 
+              borderRadius: '8px',
+              fontSize: '0.85rem'
+            }}>
+              <h4 style={{ marginBottom: '10px', color: '#333' }}>Sample RFID Tags for Testing:</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                <div><strong>RFID001</strong> - Arjun Patel (5A001)</div>
+                <div><strong>RFID002</strong> - Priya Sharma (5A002)</div>
+                <div><strong>RFID012</strong> - Rahul Kumar (4A001)</div>
+                <div><strong>RFID023</strong> - Vikram Singh (3A001)</div>
+                <div><strong>RFID007</strong> - Rohit Verma (5B001)</div>
+                <div><strong>RFID030</strong> - Gita Patel (3B002)</div>
+              </div>
+              <p style={{ marginTop: '10px', color: '#666', fontSize: '0.8rem' }}>
+                💡 Tip: Type any of these RFID tags above and press Enter to mark attendance
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -270,17 +413,64 @@ const AttendanceMarking = ({ user }) => {
       {/* Facial Recognition */}
       {attendanceMethod === 'facial' && (
         <div className="card">
-          <h2 style={{ marginBottom: '20px', color: '#333' }}>📷 Real-Time Facial Recognition</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ color: '#333', margin: 0 }}>📷 Real-Time Facial Recognition</h2>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => {
+                  setCameraActive(!cameraActive);
+                  if (cameraActive) {
+                    // Clear results when stopping camera
+                    setRecognitionResults([]);
+                    setSuccess('');
+                  }
+                }}
+                className={`btn ${cameraActive ? 'btn-danger' : 'btn-success'}`}
+                style={{ 
+                  padding: '8px 16px',
+                  fontSize: '0.9rem',
+                  fontWeight: 'bold'
+                }}
+              >
+                {cameraActive ? '🛑 Stop Camera' : '📹 Start Camera'}
+              </button>
+              
+              {recognitionResults.length > 0 && (
+                <button
+                  onClick={() => {
+                    setRecognitionResults([]);
+                    setSuccess('Recognition results cleared.');
+                  }}
+                  className="btn btn-warning"
+                  style={{ 
+                    padding: '8px 16px',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  🧹 Clear Results
+                </button>
+              )}
+            </div>
+          </div>
           
           <FaceRecognition
             students={students}
-            isActive={attendanceMethod === 'facial'}
+            isActive={attendanceMethod === 'facial' && cameraActive}
             onRecognitionResult={(recognizedStudents) => {
-              setRecognitionResults(recognizedStudents);
-              if (recognizedStudents.length > 0) {
-                setSuccess(`Found ${recognizedStudents.length} student(s)! Click to mark attendance.`);
-              }
+              // Cumulative results - add new students without removing existing ones
+              setRecognitionResults(prevResults => {
+                const existingIds = prevResults.map(r => r.id);
+                const newStudents = recognizedStudents.filter(student => !existingIds.includes(student.id));
+                const updatedResults = [...prevResults, ...newStudents];
+                
+                if (newStudents.length > 0) {
+                  setSuccess(`Added ${newStudents.length} new student(s)! Total: ${updatedResults.length} students detected.`);
+                }
+                
+                return updatedResults;
+              });
             }}
+            onCameraStatusChange={setCameraActive}
           />
 
           {/* Recognition Results */}
@@ -293,20 +483,38 @@ const AttendanceMarking = ({ user }) => {
                 marginBottom: '20px',
                 border: '2px solid #4caf50'
               }}>
-                <h3 style={{ color: '#2e7d32', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  🎯 Face Recognition Results
-                  <span style={{ 
-                    fontSize: '0.8rem', 
-                    backgroundColor: '#4caf50', 
-                    color: 'white', 
-                    padding: '4px 8px', 
-                    borderRadius: '12px' 
-                  }}>
-                    {recognitionResults.length} student(s) found
-                  </span>
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h3 style={{ color: '#2e7d32', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    🎯 Face Recognition Results
+                    <span style={{ 
+                      fontSize: '0.8rem', 
+                      backgroundColor: '#4caf50', 
+                      color: 'white', 
+                      padding: '4px 8px', 
+                      borderRadius: '12px' 
+                    }}>
+                      {recognitionResults.length} student(s) found
+                    </span>
+                  </h3>
+                  
+                  <button
+                    onClick={markAllRecognizedPresent}
+                    disabled={markingAllPresent || recognitionResults.length === 0}
+                    className="btn btn-success"
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '0.9rem',
+                      fontWeight: 'bold',
+                      backgroundColor: markingAllPresent ? '#ffc107' : '#28a745',
+                      borderColor: markingAllPresent ? '#ffc107' : '#28a745',
+                      opacity: markingAllPresent ? 0.8 : 1
+                    }}
+                  >
+                    {markingAllPresent ? '⏳ Marking All...' : '✅ Mark All Present'}
+                  </button>
+                </div>
                 <p style={{ color: '#2e7d32', margin: 0, fontSize: '0.9rem' }}>
-                  Click "Mark Present" for each recognized student to record their attendance.
+                  Click "Mark Present" for individual students or "Mark All Present" to mark everyone at once.
                 </p>
               </div>
               
