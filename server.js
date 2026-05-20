@@ -615,6 +615,206 @@ app.get('/api/health', authenticateToken, (req, res) => {
     });
 });
 
+// ─── Chatbot Endpoint ───────────────────────────────────────────────────────
+app.post('/api/chatbot', authenticateToken, (req, res) => {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ reply: 'Please send a message.' });
+
+    const msg = message.toLowerCase().trim();
+    const schoolId = req.user.school_id;
+    const today = moment().format('YYYY-MM-DD');
+
+    // ── Intent: weekly trend ────────────────────────────────────────────────
+    if (/week|trend|7 day|seven day|daily average|this week/i.test(msg)) {
+        const weekStart = moment().subtract(6, 'days').format('YYYY-MM-DD');
+        db.all(`
+            SELECT a.date, COUNT(*) as present_count
+            FROM attendance a
+            JOIN students s ON a.student_id = s.id
+            WHERE a.date >= ? AND a.status = 'present' AND s.school_id = ?
+            GROUP BY a.date
+            ORDER BY a.date ASC
+        `, [weekStart, schoolId], (err, rows) => {
+            if (err) return res.json({ reply: '⚠️ Sorry, I had trouble fetching the weekly data.' });
+            if (rows.length === 0) return res.json({ reply: '📈 No attendance data found for the past 7 days.' });
+            const lines = rows.map(r => `• ${moment(r.date).format('ddd MMM D')}: ${r.present_count} present`).join('\n');
+            const avg = (rows.reduce((s, r) => s + r.present_count, 0) / rows.length).toFixed(1);
+            res.json({ reply: `📈 *Last 7-Day Attendance Trend:*\n${lines}\n\n📊 Average: ${avg} students/day` });
+        });
+        return;
+    }
+
+    // ── Intent: student lookup ───────────────────────────────────────────────
+    const studentMatch = msg.match(/(?:is|check|find|status of|did)\s+([a-z\s]{3,30})(?:\s+present|\s+absent|\s+come|\s+attend|[?]|$)/i);
+    if (studentMatch) {
+        const namePart = studentMatch[1].trim();
+        db.get(`
+            SELECT s.name, s.class, s.section,
+                   a.status, a.time_in
+            FROM students s
+            LEFT JOIN attendance a ON s.id = a.student_id AND a.date = ?
+            WHERE s.school_id = ? AND LOWER(s.name) LIKE ?
+            LIMIT 1
+        `, [today, schoolId, `%${namePart}%`], (err, row) => {
+            if (err) return res.json({ reply: '⚠️ Error looking up student.' });
+            if (!row) return res.json({ reply: `🔍 I couldn't find any student matching *"${namePart}"*. Please check the name.` });
+            if (!row.status) return res.json({ reply: `📋 *${row.name}* (Class ${row.class}${row.section}) — No attendance recorded yet today.` });
+            if (row.status === 'present') {
+                const timeStr = row.time_in ? ` at ${moment(row.time_in, 'HH:mm:ss').format('hh:mm A')}` : '';
+                return res.json({ reply: `✅ *${row.name}* (Class ${row.class}${row.section}) is **PRESENT** today${timeStr}.` });
+            }
+            res.json({ reply: `❌ *${row.name}* (Class ${row.class}${row.section}) is **ABSENT** today.` });
+        });
+        return;
+    }
+
+    // ── Intent: late arrivals ───────────────────────────────────────────────
+    if (/late|after 9|after nine|slow|delay/i.test(msg)) {
+        db.all(`
+            SELECT s.name, s.class, s.section, a.time_in
+            FROM attendance a
+            JOIN students s ON a.student_id = s.id
+            WHERE a.date = ? AND a.status = 'present' AND a.time_in >= '09:00:00' AND s.school_id = ?
+            ORDER BY a.time_in ASC
+        `, [today, schoolId], (err, rows) => {
+            if (err) return res.json({ reply: '⚠️ Error fetching late arrivals.' });
+            if (rows.length === 0) return res.json({ reply: '⏰ No late arrivals today! Everyone who came was on time (before 9:00 AM).' });
+            const lines = rows.map(r => `• ${r.name} (Class ${r.class}${r.section}) — ${moment(r.time_in, 'HH:mm:ss').format('hh:mm A')}`).join('\n');
+            res.json({ reply: `⏰ *Late Arrivals Today (after 9:00 AM):*\n${lines}` });
+        });
+        return;
+    }
+
+    // ── Intent: class-specific report ────────────────────────────────────────
+    const classMatch = msg.match(/class\s*([3-9]|10)/i);
+    if (classMatch) {
+        const cls = classMatch[1];
+        db.all(`
+            SELECT s.section,
+                   COUNT(DISTINCT s.id) as total,
+                   SUM(CASE WHEN a.status = 'present' AND a.date = ? THEN 1 ELSE 0 END) as present
+            FROM students s
+            LEFT JOIN attendance a ON s.id = a.student_id AND a.date = ?
+            WHERE s.school_id = ? AND s.class = ?
+            GROUP BY s.section
+            ORDER BY s.section
+        `, [today, today, schoolId, cls], (err, rows) => {
+            if (err) return res.json({ reply: '⚠️ Error fetching class data.' });
+            if (rows.length === 0) return res.json({ reply: `🔍 No students found in Class ${cls}.` });
+            const lines = rows.map(r => `• Section ${r.section}: ${r.present}/${r.total} present`).join('\n');
+            const totalP = rows.reduce((s, r) => s + r.present, 0);
+            const totalS = rows.reduce((s, r) => s + r.total, 0);
+            res.json({ reply: `📚 *Class ${cls} Attendance Today:*\n${lines}\n\n📊 Total: ${totalP}/${totalS} present` });
+        });
+        return;
+    }
+
+    // ── Intent: chronic absentees / who misses most ──────────────────────────
+    if (/chronic|miss|skip|bunk|frequent|most absent|often absent/i.test(msg)) {
+        db.all(`
+            SELECT s.name, s.class, s.section, COUNT(a.id) as absent_count
+            FROM students s
+            LEFT JOIN attendance a ON s.id = a.student_id AND a.status = 'absent'
+            WHERE s.school_id = ?
+            GROUP BY s.id
+            ORDER BY absent_count DESC
+            LIMIT 5
+        `, [schoolId], (err, rows) => {
+            if (err) return res.json({ reply: '⚠️ Error fetching absentee data.' });
+            if (!rows || rows[0].absent_count === 0) return res.json({ reply: '🎉 Great news! No chronic absentees found.' });
+            const lines = rows.filter(r => r.absent_count > 0).map((r, i) => `${i + 1}. ${r.name} (Class ${r.class}${r.section}) — ${r.absent_count} absences`).join('\n');
+            res.json({ reply: `⚠️ *Top Absentees (All Time):*\n${lines}` });
+        });
+        return;
+    }
+
+    // ── Intent: who is absent today (list) ──────────────────────────────────
+    if (/who.*absent|absent.*list|absent.*student|list.*absent|name.*absent/i.test(msg)) {
+        db.all(`
+            SELECT s.name, s.class, s.section
+            FROM students s
+            WHERE s.school_id = ? AND s.id NOT IN (
+                SELECT student_id FROM attendance WHERE date = ? AND status = 'present'
+            )
+            ORDER BY s.class, s.section, s.name
+        `, [schoolId, today], (err, rows) => {
+            if (err) return res.json({ reply: '⚠️ Error fetching absent students.' });
+            if (rows.length === 0) return res.json({ reply: '🎉 Wow! All students are present today!' });
+            const lines = rows.slice(0, 15).map(r => `• ${r.name} (Class ${r.class}${r.section})`).join('\n');
+            const more = rows.length > 15 ? `\n...and ${rows.length - 15} more.` : '';
+            res.json({ reply: `❌ *Absent Today (${rows.length} students):*\n${lines}${more}` });
+        });
+        return;
+    }
+
+    // ── Intent: who is present today (list) ─────────────────────────────────
+    if (/who.*present|present.*list|present.*student|list.*present|name.*present/i.test(msg)) {
+        db.all(`
+            SELECT s.name, s.class, s.section, a.time_in
+            FROM attendance a
+            JOIN students s ON a.student_id = s.id
+            WHERE a.date = ? AND a.status = 'present' AND s.school_id = ?
+            ORDER BY s.class, s.section, s.name
+        `, [today, schoolId], (err, rows) => {
+            if (err) return res.json({ reply: '⚠️ Error fetching present students.' });
+            if (rows.length === 0) return res.json({ reply: `📋 No students have been marked present yet today (${moment().format('MMM D, YYYY')}).` });
+            const lines = rows.slice(0, 15).map(r => `• ${r.name} (Class ${r.class}${r.section})`).join('\n');
+            const more = rows.length > 15 ? `\n...and ${rows.length - 15} more.` : '';
+            res.json({ reply: `✅ *Present Today (${rows.length} students):*\n${lines}${more}` });
+        });
+        return;
+    }
+
+    // ── Intent: absent count ─────────────────────────────────────────────────
+    if (/absent|how many.*not|missing|didn.*come|not.*come/i.test(msg)) {
+        db.get('SELECT COUNT(*) as total FROM students WHERE school_id = ?', [schoolId], (err, total) => {
+            if (err) return res.json({ reply: '⚠️ Error fetching data.' });
+            db.get(`SELECT COUNT(*) as present FROM attendance WHERE date = ? AND status = 'present' AND student_id IN (SELECT id FROM students WHERE school_id = ?)`, [today, schoolId], (err2, present) => {
+                if (err2) return res.json({ reply: '⚠️ Error fetching data.' });
+                const absent = total.total - present.present;
+                const rate = total.total > 0 ? ((present.present / total.total) * 100).toFixed(1) : 0;
+                res.json({ reply: `❌ *Absent Today:* ${absent} out of ${total.total} students (${(100 - rate).toFixed(1)}% absent)\n✅ Present: ${present.present} students\n📊 Attendance Rate: ${rate}%\n📅 Date: ${moment().format('MMMM Do, YYYY')}` });
+            });
+        });
+        return;
+    }
+
+    // ── Intent: attendance rate / percentage ────────────────────────────────
+    if (/rate|percent|%|ratio|score/i.test(msg)) {
+        db.get('SELECT COUNT(*) as total FROM students WHERE school_id = ?', [schoolId], (err, total) => {
+            if (err) return res.json({ reply: '⚠️ Error.' });
+            db.get(`SELECT COUNT(*) as present FROM attendance WHERE date = ? AND status = 'present' AND student_id IN (SELECT id FROM students WHERE school_id = ?)`, [today, schoolId], (err2, present) => {
+                if (err2) return res.json({ reply: '⚠️ Error.' });
+                const rate = total.total > 0 ? ((present.present / total.total) * 100).toFixed(1) : 0;
+                const emoji = rate >= 90 ? '🌟' : rate >= 75 ? '✅' : rate >= 60 ? '⚠️' : '❌';
+                res.json({ reply: `${emoji} *Today's Attendance Rate: ${rate}%*\n✅ Present: ${present.present}\n❌ Absent: ${total.total - present.present}\n👥 Total Students: ${total.total}\n📅 ${moment().format('MMMM Do, YYYY')}` });
+            });
+        });
+        return;
+    }
+
+    // ── Intent: present count (default numbers question) ────────────────────
+    if (/present|how many|count|total.*today|today.*count|attendance today|came|showed up/i.test(msg)) {
+        db.get('SELECT COUNT(*) as total FROM students WHERE school_id = ?', [schoolId], (err, total) => {
+            if (err) return res.json({ reply: '⚠️ Error fetching student count.' });
+            db.get(`SELECT COUNT(*) as present FROM attendance WHERE date = ? AND status = 'present' AND student_id IN (SELECT id FROM students WHERE school_id = ?)`, [today, schoolId], (err2, present) => {
+                if (err2) return res.json({ reply: '⚠️ Error fetching attendance.' });
+                const rate = total.total > 0 ? ((present.present / total.total) * 100).toFixed(1) : 0;
+                res.json({ reply: `📊 *Today's Attendance — ${moment().format('MMMM Do, YYYY')}*\n✅ Present: ${present.present} students\n❌ Absent: ${total.total - present.present} students\n👥 Total: ${total.total} students\n📈 Rate: ${rate}%` });
+            });
+        });
+        return;
+    }
+
+    // ── Intent: help / what can you do ──────────────────────────────────────
+    if (/help|what can|what do|how to use|guide|commands|options/i.test(msg)) {
+        return res.json({ reply: `🤖 *I can answer questions like:*\n\n• "How many students are present today?"\n• "Who is absent today?"\n• "Show me class 5 attendance"\n• "Is Arjun Patel present?"\n• "Show weekly trend"\n• "Who came late today?"\n• "Who misses school the most?"\n• "What is the attendance rate?"\n\nJust ask naturally! 😊` });
+    }
+
+    // ── Fallback ─────────────────────────────────────────────────────────────
+    res.json({ reply: `🤔 I'm not sure how to answer that. Try asking:\n• "How many present today?"\n• "Who is absent?"\n• "Class 5 attendance"\n• "Weekly trend"\n\nOr type *help* to see all I can do!` });
+});
+
 // Serve static files from React build
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, 'client/build')));

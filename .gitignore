@@ -19,7 +19,7 @@ client/build/static/media/
 .env.local
 .env.development.local
 .env.test.local
-.env.production.local
+# Note: .env.production is intentionally NOT ignored (it contains public Render.com URL)
 
 # Logs
 logs

@@ -1,0 +1,352 @@
+/* ══════════════════════════════════════════════════════
+   DARK MODE - applied when body has .dark-mode class
+══════════════════════════════════════════════════════ */
+
+/* Smooth transition for all elements */
+body,
+body * {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* ── Body & App ─────────────────────────────────────── */
+body.dark-mode {
+  background-color: #0f1117;
+  color: #e2e8f0;
+}
+
+body.dark-mode .app-container {
+  background-color: #0f1117;
+}
+
+/* ── Cards ──────────────────────────────────────────── */
+body.dark-mode .card {
+  background: #1a1d2e;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  border: 1px solid #2d3250;
+  color: #e2e8f0;
+}
+
+/* ── Page headings / text ──────────────────────────── */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5 {
+  color: #e2e8f0 !important;
+}
+
+body.dark-mode p,
+body.dark-mode span,
+body.dark-mode label,
+body.dark-mode li {
+  color: #b0bcd0;
+}
+
+body.dark-mode strong {
+  color: #e2e8f0;
+}
+
+/* ── Forms ──────────────────────────────────────────── */
+body.dark-mode .form-group label {
+  color: #c8d0e0;
+}
+
+body.dark-mode .form-group input,
+body.dark-mode .form-group select,
+body.dark-mode .form-control,
+body.dark-mode input[type="text"],
+body.dark-mode input[type="password"],
+body.dark-mode input[type="date"],
+body.dark-mode input[type="tel"],
+body.dark-mode input[type="file"],
+body.dark-mode select {
+  background-color: #252840;
+  border-color: #3d4275;
+  color: #e2e8f0;
+}
+
+body.dark-mode .form-group input::placeholder,
+body.dark-mode input::placeholder {
+  color: #6b7280;
+}
+
+body.dark-mode .form-group input:focus,
+body.dark-mode .form-group select:focus,
+body.dark-mode .form-control:focus,
+body.dark-mode input:focus,
+body.dark-mode select:focus {
+  border-color: #7c8ef0;
+  box-shadow: 0 0 0 2px rgba(124, 142, 240, 0.25);
+  background-color: #2d3155;
+}
+
+/* ── Buttons ────────────────────────────────────────── */
+body.dark-mode .btn-secondary {
+  background-color: #374151;
+  color: #e2e8f0;
+}
+
+body.dark-mode .btn-secondary:hover {
+  background-color: #4b5563;
+}
+
+/* ── Student cards ──────────────────────────────────── */
+body.dark-mode .student-card {
+  background: #1e2235;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  border-left-color: #4ade80;
+}
+
+body.dark-mode .student-card.absent {
+  border-left-color: #f87171;
+}
+
+body.dark-mode .student-name {
+  color: #e2e8f0;
+}
+
+body.dark-mode .student-details {
+  color: #8b9bb4;
+}
+
+/* ── Status badges ──────────────────────────────────── */
+body.dark-mode .status-present {
+  background-color: #14432a;
+  color: #4ade80;
+}
+
+body.dark-mode .status-absent {
+  background-color: #431414;
+  color: #f87171;
+}
+
+/* ── Loading & Error & Success ──────────────────────── */
+body.dark-mode .loading {
+  color: #8b9bb4;
+}
+
+body.dark-mode .error {
+  background-color: #3b1515;
+  color: #fca5a5;
+  border: 1px solid #7f1d1d;
+}
+
+body.dark-mode .success {
+  background-color: #14291a;
+  color: #86efac;
+  border: 1px solid #14532d;
+}
+
+/* ── Tables ─────────────────────────────────────────── */
+body.dark-mode table {
+  background-color: #1a1d2e !important;
+  color: #e2e8f0;
+}
+
+body.dark-mode thead tr {
+  background-color: #252840 !important;
+}
+
+body.dark-mode th {
+  background-color: #252840 !important;
+  color: #c8d0e0 !important;
+  border-color: #3d4275 !important;
+}
+
+body.dark-mode td {
+  border-color: #2d3250 !important;
+  color: #d1d8e8;
+}
+
+body.dark-mode tbody tr {
+  background-color: #1a1d2e !important;
+}
+
+body.dark-mode tbody tr:nth-child(even) {
+  background-color: #1e2235 !important;
+}
+
+/* Present/absent row colors in dark */
+body.dark-mode tr[style*="#f1f8e9"] {
+  background-color: #132318 !important;
+}
+body.dark-mode tr[style*="#ffebee"] {
+  background-color: #2a1111 !important;
+}
+
+/* ── Stat cards keep their gradient but get a subtle tint ── */
+body.dark-mode .stat-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  opacity: 0.92;
+}
+
+/* ── Info / warning banner sections ─────────────────── */
+body.dark-mode .card[style*="#f8f9fa"],
+body.dark-mode div[style*="background-color: rgb(248, 249, 250)"],
+body.dark-mode div[style*="backgroundColor: '#f8f9fa'"] {
+  background-color: #1e2235 !important;
+}
+
+body.dark-mode .card[style*="#fff3cd"],
+body.dark-mode div[style*="background-color: rgb(255, 243, 205)"] {
+  background-color: #2a2510 !important;
+  color: #d4b96a !important;
+}
+
+/* ── RFID Scanner Section ───────────────────────────── */
+body.dark-mode .rfid-scanner {
+  /* Keep gradient but slightly dimmed */
+  filter: brightness(0.88);
+}
+
+body.dark-mode .rfid-input {
+  background-color: #1e2235;
+  color: #e2e8f0;
+  border-color: #4c5585;
+}
+
+/* ── System status boxes ────────────────────────────── */
+body.dark-mode div[style*="background-color: white"],
+body.dark-mode div[style*="backgroundColor: 'white'"] {
+  background-color: #1a1d2e !important;
+}
+
+body.dark-mode div[style*="background-color: #f8f9fa"],
+body.dark-mode div[style*="backgroundColor: '#f8f9fa'"] {
+  background-color: #1e2235 !important;
+}
+
+/* ── Login page ─────────────────────────────────────── */
+body.dark-mode .card input[type="text"],
+body.dark-mode .card input[type="password"] {
+  background-color: #252840;
+  color: #e2e8f0;
+  border-color: #3d4275;
+}
+
+/* ── Chatbot window ─────────────────────────────────── */
+body.dark-mode .chatbot-window {
+  background: #1a1d2e;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode .chatbot-messages {
+  background: #13162a;
+}
+
+body.dark-mode .chatbot-bubble--bot {
+  background: #252840;
+  color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .chatbot-suggestions {
+  background: #1a1d2e;
+  border-top-color: #2d3250;
+}
+
+body.dark-mode .chatbot-chip {
+  background: #252840;
+  border-color: #3d4275;
+  color: #9ba8f0;
+}
+
+body.dark-mode .chatbot-chip:hover:not(:disabled) {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: transparent;
+}
+
+body.dark-mode .chatbot-input-bar {
+  background: #1a1d2e;
+  border-top-color: #2d3250;
+}
+
+body.dark-mode .chatbot-input {
+  background: #252840;
+  border-color: #3d4275;
+  color: #e2e8f0;
+}
+
+body.dark-mode .chatbot-input:focus {
+  background: #2d3155;
+  border-color: #7c8ef0;
+}
+
+body.dark-mode .chatbot-dot {
+  background: #5a6aaa;
+}
+
+body.dark-mode .chatbot-messages::-webkit-scrollbar-thumb {
+  background: #3d4275;
+}
+
+/* ── Inline style overrides using attribute selectors ── */
+/* For elements that hardcode background in JSX style={{}} */
+body.dark-mode [style*="background-color: #e8f5e8"],
+body.dark-mode [style*="backgroundColor: '#e8f5e8'"] {
+  background-color: #132318 !important;
+}
+
+body.dark-mode [style*="background-color: #e3f2fd"],
+body.dark-mode [style*="backgroundColor: '#e3f2fd'"] {
+  background-color: #0d1f33 !important;
+}
+
+body.dark-mode [style*="background-color: #f1f8e9"],
+body.dark-mode [style*="backgroundColor: '#f1f8e9'"] {
+  background-color: #132318 !important;
+}
+
+body.dark-mode [style*="background-color: #ffebee"],
+body.dark-mode [style*="backgroundColor: '#ffebee'"] {
+  background-color: #2a1111 !important;
+}
+
+body.dark-mode [style*="background-color: #fff3cd"],
+body.dark-mode [style*="backgroundColor: '#fff3cd'"] {
+  background-color: #2a2510 !important;
+}
+
+/* ── Dark mode toggle button (in Navbar) ────────────── */
+.dark-toggle-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+  padding: 5px 11px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.2s, transform 0.2s;
+  white-space: nowrap;
+}
+
+.dark-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.05);
+}
+
+/* ── Scrollbar in dark mode ─────────────────────────── */
+body.dark-mode::-webkit-scrollbar {
+  width: 8px;
+}
+
+body.dark-mode::-webkit-scrollbar-track {
+  background: #0f1117;
+}
+
+body.dark-mode::-webkit-scrollbar-thumb {
+  background: #3d4275;
+  border-radius: 4px;
+}
+
+body.dark-mode::-webkit-scrollbar-thumb:hover {
+  background: #5a6aaa;
+}
