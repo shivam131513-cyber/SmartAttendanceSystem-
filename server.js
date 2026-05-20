@@ -14,7 +14,22 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = 'rural_school_attendance_secret_key';
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, Postman)
+        if (!origin) return callback(null, true);
+        // Allow all Vercel app domains and localhost
+        if (
+            origin.includes('vercel.app') ||
+            origin.includes('localhost') ||
+            origin.includes('127.0.0.1')
+        ) {
+            return callback(null, true);
+        }
+        callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/uploads', express.static('uploads'));
