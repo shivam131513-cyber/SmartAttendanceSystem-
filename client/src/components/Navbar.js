@@ -35,6 +35,15 @@ const Navbar = ({ user, onLogout, darkMode, onToggleDarkMode }) => {
     }
   };
 
+  // Called by Profile modal after upload — accepts direct base64 URL for instant update
+  const handleProfileUpdate = (directUrl) => {
+    if (directUrl) {
+      setProfilePicture(directUrl);
+    } else {
+      fetchProfilePicture();
+    }
+  };
+
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/attendance', label: 'Mark Attendance' },
@@ -269,7 +278,7 @@ const Navbar = ({ user, onLogout, darkMode, onToggleDarkMode }) => {
         <Profile
           user={user}
           onClose={() => setShowProfile(false)}
-          onProfileUpdate={fetchProfilePicture}
+          onProfileUpdate={handleProfileUpdate}
         />
       )}
 

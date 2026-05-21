@@ -60,8 +60,8 @@ const Profile = ({ user, onClose, onProfileUpdate }) => {
       });
       setMessage({ text: '✅ Profile picture updated!', type: 'success' });
       setSelectedFile(null);
-      fetchProfile();
-      if (onProfileUpdate) onProfileUpdate();
+      // Pass the current previewUrl (base64) directly to Navbar so it updates immediately
+      if (onProfileUpdate) onProfileUpdate(previewUrl);
     } catch (error) {
       setMessage({ text: '❌ Upload failed. Please try again.', type: 'error' });
     } finally {
