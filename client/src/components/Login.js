@@ -230,8 +230,8 @@ const Login = ({ onLogin, darkMode, onToggleDarkMode }) => {
             🔑 Demo Credentials
           </h4>
           {[
-            { label: 'Admin', user: 'vaibhav', pass: 'vaibhav123' },
-            { label: 'Admin', user: 'harsh', pass: 'harsh-in-making' },
+            { label: 'Admin', user: 'shivam', pass: 'shivam@123' },
+            { label: 'Admin', user: 'prince', pass: 'prince@123' },
             { label: 'Teacher', user: 'teacher', pass: 'teacher123' }
           ].map(({ label, user, pass }) => (
             <div key={user} style={{

@@ -163,26 +163,26 @@ function insertDefaultData() {
                         return;
                     }
                     
-                    // Create default admin user - vaibhav
+                    // Create default admin user - shivam
                     const adminId = uuidv4();
-                    const hashedPassword = bcrypt.hashSync('vaibhav123', 10);
+                    const hashedPassword = bcrypt.hashSync('shivam@123', 10);
                     db.run(`INSERT INTO users (id, username, password, role, school_id) 
                             VALUES (?, ?, ?, ?, ?)`, 
-                            [adminId, 'vaibhav', hashedPassword, 'admin', schoolId], 
+                            [adminId, 'shivam', hashedPassword, 'admin', schoolId], 
                             function(err) {
                                 if (err) console.error('Error inserting admin:', err);
-                                else console.log('Admin user vaibhav created successfully');
+                                else console.log('Admin user shivam created successfully');
                             });
 
-                    // Create second admin user - harsh
+                    // Create second admin user - prince
                     const harshId = uuidv4();
-                    const harshPassword = bcrypt.hashSync('harsh-in-making', 10);
+                    const harshPassword = bcrypt.hashSync('prince@123', 10);
                     db.run(`INSERT INTO users (id, username, password, role, school_id) 
                             VALUES (?, ?, ?, ?, ?)`, 
-                            [harshId, 'harsh', harshPassword, 'admin', schoolId], 
+                            [harshId, 'prince', harshPassword, 'admin', schoolId], 
                             function(err) {
-                                if (err) console.error('Error inserting harsh admin:', err);
-                                else console.log('Admin user harsh created successfully');
+                                if (err) console.error('Error inserting prince admin:', err);
+                                else console.log('Admin user prince created successfully');
                             });
 
                     // Create default teacher user
