@@ -27,7 +27,8 @@ const Navbar = ({ user, onLogout, darkMode, onToggleDarkMode }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data.profile_picture) {
-        setProfilePicture(`http://localhost:5000/${response.data.profile_picture}`);
+        const apiUrl = process.env.REACT_APP_API_URL || '';
+        setProfilePicture(`${apiUrl}/${response.data.profile_picture}`);
       }
     } catch (error) {
       console.error('Error fetching profile picture:', error);
