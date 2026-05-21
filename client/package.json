@@ -48,5 +48,11 @@
   "proxy": "http://localhost:5000",
   "devDependencies": {
     "cross-env": "^10.1.0"
+  },
+  "browser": {
+    "fs": false,
+    "path": false,
+    "os": false,
+    "crypto": false
   }
 }
