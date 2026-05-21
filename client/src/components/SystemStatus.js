@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import moment from 'moment';
 
 const SystemStatus = ({ user }) => {
   const [healthData, setHealthData] = useState(null);

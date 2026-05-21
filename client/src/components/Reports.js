@@ -17,6 +17,7 @@ const Reports = ({ user }) => {
   useEffect(() => {
     fetchReportData();
     fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, reportType]);
 
   const fetchStats = async () => {
@@ -292,7 +293,6 @@ const Reports = ({ user }) => {
     printWindow.print();
   };
 
-  const summaryData = generateSummaryReport();
   const classWiseData = getClassWiseReport();
 
   return (

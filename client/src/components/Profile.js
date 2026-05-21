@@ -46,7 +46,7 @@ const Profile = ({ user, onClose, onProfileUpdate }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('/api/profile-picture', formData, {
+      await axios.post('/api/profile-picture', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'

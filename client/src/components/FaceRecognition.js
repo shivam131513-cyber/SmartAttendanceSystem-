@@ -37,6 +37,7 @@ const FaceRecognition = ({ onRecognitionResult, students = [], isActive, onCamer
     } else if (!isActive) {
       stopVideo();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelsLoaded, isActive]);
 
   const loadModels = async () => {
